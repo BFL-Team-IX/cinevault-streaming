@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<!-- Developer: unhappydev -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Movies — CineVault</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { crimson: '#C0392B', gold: '#D4AF37' }, fontFamily: { display: ['Playfair Display','serif'], body: ['DM Sans','sans-serif'] } } } }</script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    .grain::after { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:999; opacity:.4; }
+    .card-hover { transition: transform .3s ease, box-shadow .3s ease; }
+    .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(192,57,43,.2); }
+    .filter-btn.active { background: #C0392B; color: white; border-color: #C0392B; }
+  </style>
+</head>
+<body class="bg-black text-white font-body grain min-h-screen">
+
+  <!-- NAV -->
+  <nav class="fixed top-0 w-full z-50 bg-black/90 backdrop-blur-md border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center gap-6">
+      <a href="index.html" class="font-display text-2xl font-black shrink-0"><span class="text-crimson">CINE</span>VAULT</a>
+      <div class="flex-1 max-w-md"><input id="search" type="text" placeholder="Search titles, directors, actors…" class="w-full bg-white/5 border border-white/10 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:border-crimson/60 transition placeholder-white/30" /></div>
+      <div class="hidden md:flex gap-6 text-sm text-white/50 ml-auto">
+        <a href="watchlist.html" class="hover:text-white transition">Watchlist</a>
+        <a href="auth.html" id="nav-login" class="hover:text-crimson transition">Sign In</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-6 pt-28 pb-20">
+    <!-- Header -->
+    <div class="mb-10">
+      <p class="text-crimson text-xs tracking-widest uppercase mb-2">CineVault Library</p>
+      <h1 class="font-display text-5xl font-black">Browse <span class="text-white/20">All</span> Films</h1>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex flex-wrap gap-3 mb-10" id="genre-filters">
+      <button data-genre="All" class="filter-btn active text-xs px-5 py-2 rounded-full border border-white/15 hover:border-crimson transition">All</button>
+      <button data-genre="Sci-Fi" class="filter-btn text-xs px-5 py-2 rounded-full border border-white/15 hover:border-crimson transition text-white/60">Sci-Fi</button>
+      <button data-genre="Drama" class="filter-btn text-xs px-5 py-2 rounded-full border border-white/15 hover:border-crimson transition text-white/60">Drama</button>
+      <button data-genre="Action" class="filter-btn text-xs px-5 py-2 rounded-full border border-white/15 hover:border-crimson transition text-white/60">Action</button>
+      <button data-genre="Thriller" class="filter-btn text-xs px-5 py-2 rounded-full border border-white/15 hover:border-crimson transition text-white/60">Thriller</button>
+      <button data-genre="Comedy" class="filter-btn text-xs px-5 py-2 rounded-full border border-white/15 hover:border-crimson transition text-white/60">Comedy</button>
+      <!-- Sort -->
+      <select id="sort" class="ml-auto bg-white/5 border border-white/10 text-xs rounded-full px-4 py-2 text-white/60 focus:outline-none focus:border-crimson/60">
+        <option value="rating">Top Rated</option>
+        <option value="year">Newest</option>
+        <option value="title">A–Z</option>
+      </select>
+    </div>
+
+    <!-- Results count -->
+    <p class="text-white/30 text-sm mb-6"><span id="count">0</span> titles found</p>
+
+    <!-- Grid -->
+    <div id="movie-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5"></div>
+
+    <!-- Empty state -->
+    <div id="empty" class="hidden text-center py-24">
+      <p class="text-6xl mb-4">🎞️</p>
+      <p class="text-white/40 text-lg">No films match your search.</p>
+      <button onclick="resetFilters()" class="mt-4 text-crimson text-sm hover:underline">Clear filters</button>
+    </div>
+  </main>
+
+  <script src="shared.js"></script>
+  <script>
+    let activeGenre = 'All', query = '';
+
+    function render() {
+      let films = [...MOVIES];
+      if (activeGenre !== 'All') films = films.filter(m => m.genre.includes(activeGenre));
+      if (query) films = films.filter(m => m.title.toLowerCase().includes(query) || m.director.toLowerCase().includes(query) || m.cast.some(c => c.toLowerCase().includes(query)));
+      const sort = document.getElementById('sort').value;
+      if (sort === 'rating') films.sort((a,b) => b.rating - a.rating);
+      else if (sort === 'year') films.sort((a,b) => b.year - a.year);
+      else films.sort((a,b) => a.title.localeCompare(b.title));
+
+      document.getElementById('count').textContent = films.length;
+      const grid = document.getElementById('movie-grid');
+      const empty = document.getElementById('empty');
+      if (!films.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+      empty.classList.add('hidden');
+      grid.innerHTML = films.map(m => `
+        <a href="movie-details.html?id=${m.id}" class="card-hover group relative rounded-2xl overflow-hidden block bg-white/[0.02]">
+          <div class="aspect-[2/3] overflow-hidden">
+            <img src="${m.poster}" alt="${m.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://via.placeholder.com/300x450/111/444?text=${encodeURIComponent(m.title)}'"/>
+          </div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent"></div>
+          <div class="absolute top-3 right-3 bg-black/70 backdrop-blur text-gold text-xs px-2 py-1 rounded-full font-medium">⭐ ${m.rating}</div>
+          <div class="absolute bottom-0 p-4">
+            <p class="font-display font-bold leading-tight">${m.title}</p>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-white/40 text-xs">${m.year}</span>
+              <span class="text-white/20 text-xs">·</span>
+              <span class="text-xs text-crimson">${m.genre[0]}</span>
+            </div>
+          </div>
+        </a>`).join('');
+    }
+
+    function resetFilters() { activeGenre='All'; query=''; document.getElementById('search').value=''; document.querySelectorAll('.filter-btn').forEach((b,i)=>b.classList.toggle('active',i===0)); render(); }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeGenre = btn.dataset.genre;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active','text-white/60'));
+        btn.classList.add('active');
+        render();
+      });
+    });
+    document.getElementById('search').addEventListener('input', e => { query = e.target.value.toLowerCase().trim(); render(); });
+    document.getElementById('sort').addEventListener('change', render);
+
+    const user = Auth.current();
+    if (user) document.getElementById('nav-login').textContent = user.name;
+
+    render();
+  </script>
+</body>
+</html>
