@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<!-- Developer: prozaks -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Watchlist — CineVault</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { crimson: '#C0392B', gold: '#D4AF37' }, fontFamily: { display: ['Playfair Display','serif'], body: ['DM Sans','sans-serif'] } } } }</script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    .grain::after { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:999; opacity:.4; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in { animation: fadeIn .4s ease forwards; }
+    .card-hover { transition: all .3s ease; }
+    .card-hover:hover { box-shadow: 0 10px 40px rgba(192,57,43,.2); }
+    .avatar-ring { background: conic-gradient(#C0392B, #D4AF37, #C0392B); padding: 2px; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-black text-white font-body grain min-h-screen">
+
+  <!-- NAV -->
+  <nav class="fixed top-0 w-full z-50 bg-black/90 backdrop-blur-md border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="index.html" class="font-display text-2xl font-black"><span class="text-crimson">CINE</span>VAULT</a>
+      <div class="flex items-center gap-6 text-sm">
+        <a href="movies.html" class="text-white/50 hover:text-white transition">Browse</a>
+        <button onclick="handleLogout()" class="text-white/50 hover:text-crimson transition">Sign Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-6 pt-28 pb-20">
+    <!-- Profile Header -->
+    <div class="flex flex-col md:flex-row items-start md:items-center gap-8 mb-16 pb-12 border-b border-white/8">
+      <div class="avatar-ring shrink-0">
+        <div class="w-20 h-20 rounded-full bg-[#1a0a0a] flex items-center justify-center text-3xl font-display font-black" id="avatar-initials"></div>
+      </div>
+      <div class="flex-1">
+        <p class="text-white/30 text-xs tracking-widest uppercase mb-1">Member since <span id="joined-date"></span></p>
+        <h1 class="font-display text-4xl font-black" id="user-name">—</h1>
+        <p class="text-white/40 text-sm mt-1" id="user-email">—</p>
+      </div>
+      <div class="flex gap-8 text-center">
+        <div><p class="font-display text-3xl font-bold text-crimson" id="wl-count">0</p><p class="text-white/30 text-xs mt-1 uppercase tracking-widest">Saved</p></div>
+        <div class="h-12 w-px bg-white/8 self-center"></div>
+        <div><p class="font-display text-3xl font-bold text-gold" id="genres-count">0</p><p class="text-white/30 text-xs mt-1 uppercase tracking-widest">Genres</p></div>
+      </div>
+    </div>
+
+    <!-- Watchlist -->
+    <div class="flex items-end justify-between mb-8">
+      <div><p class="text-crimson text-xs tracking-widest uppercase mb-2">Saved Films</p><h2 class="font-display text-4xl font-bold">My Watchlist</h2></div>
+      <div id="watchlist-actions" class="hidden">
+        <button onclick="clearAll()" class="text-xs text-white/30 hover:text-crimson transition border border-white/10 px-4 py-2 rounded-full hover:border-crimson">Clear All</button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden text-center py-28">
+      <p class="text-7xl mb-6">🎞️</p>
+      <h3 class="font-display text-2xl font-bold mb-3">Your watchlist is empty</h3>
+      <p class="text-white/30 text-sm mb-8">Browse films and add them to your personal list.</p>
+      <a href="movies.html" class="px-8 py-4 bg-crimson rounded-full text-sm font-medium hover:bg-red-700 transition">Discover Films</a>
+    </div>
+
+    <!-- Grid -->
+    <div id="watchlist-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+
+    <!-- Recommendations -->
+    <div id="rec-section" class="mt-20 hidden">
+      <div class="mb-8"><p class="text-gold text-xs tracking-widest uppercase mb-2">Based on your taste</p><h2 class="font-display text-3xl font-bold">You Might Like</h2></div>
+      <div id="rec-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+    </div>
+  </main>
+
+  <script src="shared.js"></script>
+  <script>
+    // Auth guard
+    if (!Auth.current()) window.location.href = 'auth.html';
+    const user = Auth.current();
+
+    // Profile
+    document.getElementById('user-name').textContent = user.name;
+    document.getElementById('user-email').textContent = user.email;
+    document.getElementById('avatar-initials').textContent = user.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('joined-date').textContent = new Date(user.joined || Date.now()).toLocaleDateString('en-US',{year:'numeric',month:'long'});
+
+    function renderWatchlist() {
+      const list = Watchlist.get();
+      document.getElementById('wl-count').textContent = list.length;
+      const genres = [...new Set(list.flatMap(m => m.genre))];
+      document.getElementById('genres-count').textContent = genres.length;
+
+      const grid = document.getElementById('watchlist-grid');
+      const empty = document.getElementById('empty-state');
+      const actions = document.getElementById('watchlist-actions');
+      const recSection = document.getElementById('rec-section');
+
+      if (!list.length) { grid.innerHTML=''; empty.classList.remove('hidden'); actions.classList.add('hidden'); recSection.classList.add('hidden'); return; }
+      empty.classList.add('hidden'); actions.classList.remove('hidden');
+
+      grid.innerHTML = list.map((m,i) => `
+        <div class="card-hover fade-in group bg-white/[0.025] border border-white/8 rounded-2xl overflow-hidden flex gap-4 p-4" style="animation-delay:${i*0.06}s">
+          <a href="movie-details.html?id=${m.id}" class="shrink-0 w-20 rounded-xl overflow-hidden aspect-[2/3]">
+            <img src="${m.poster}" alt="${m.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.src='https://via.placeholder.com/80x120/111/444'" />
+          </a>
+          <div class="flex-1 min-w-0">
+            <a href="movie-details.html?id=${m.id}" class="font-display font-bold text-lg leading-tight hover:text-crimson transition block truncate">${m.title}</a>
+            <p class="text-white/30 text-xs mt-1">${m.year} · ${m.duration}</p>
+            <p class="text-gold text-xs mt-1">⭐ ${m.rating}</p>
+            <p class="text-white/40 text-xs mt-2 line-clamp-2 leading-relaxed">${m.description}</p>
+            <div class="flex gap-3 mt-4">
+              <a href="movie-details.html?id=${m.id}" class="flex-1 text-center text-xs py-2 bg-crimson/80 hover:bg-crimson rounded-lg transition font-medium">Watch</a>
+              <button onclick="removeFilm(${m.id})" class="text-xs py-2 px-3 border border-white/10 rounded-lg hover:border-crimson/50 hover:text-crimson transition text-white/40">Remove</button>
+            </div>
+          </div>
+        </div>`).join('');
+
+      // Recommendations
+      const watchedIds = list.map(m => m.id);
+      const watchedGenres = list.flatMap(m => m.genre);
+      const recs = MOVIES.filter(m => !watchedIds.includes(m.id) && m.genre.some(g => watchedGenres.includes(g))).slice(0,4);
+      if (recs.length) {
+        recSection.classList.remove('hidden');
+        document.getElementById('rec-grid').innerHTML = recs.map(m => `
+          <a href="movie-details.html?id=${m.id}" class="group relative rounded-xl overflow-hidden block aspect-[2/3]">
+            <img src="${m.poster}" alt="${m.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://via.placeholder.com/300x450/111/444?text=${encodeURIComponent(m.title)}'"/>
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+            <div class="absolute bottom-0 p-3"><p class="font-display font-bold text-sm">${m.title}</p><p class="text-white/40 text-xs">${m.year}</p></div>
+          </a>`).join('');
+      }
+    }
+
+    function removeFilm(id) { Watchlist.remove(id); renderWatchlist(); }
+    function clearAll() { if (confirm('Remove all films from your watchlist?')) { localStorage.removeItem('cv_watchlist'); renderWatchlist(); } }
+    function handleLogout() { Auth.logout(); window.location.href = 'index.html'; }
+
+    renderWatchlist();
+  </script>
+</body>
+</html>
