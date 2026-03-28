@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<!-- Developer: apostle -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movie Details — CineVault</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { crimson: '#C0392B', gold: '#D4AF37' }, fontFamily: { display: ['Playfair Display','serif'], body: ['DM Sans','sans-serif'] } } } }</script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    .grain::after { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:999; opacity:.4; }
+    .backdrop-hero { min-height: 70vh; position:relative; }
+    .modal-overlay { display:none; }
+    .modal-overlay.open { display:flex; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .modal-overlay.open { animation: fadeIn .2s ease; }
+    .rating-bar { height:3px; background: linear-gradient(to right, #C0392B, #D4AF37); border-radius:2px; }
+  </style>
+</head>
+<body class="bg-black text-white font-body grain">
+
+  <!-- NAV -->
+  <nav class="fixed top-0 w-full z-50 bg-transparent">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <a href="index.html" class="font-display text-2xl font-black"><span class="text-crimson">CINE</span>VAULT</a>
+      <a href="movies.html" class="text-sm text-white/50 hover:text-white transition flex items-center gap-2">← Back to Browse</a>
+    </div>
+  </nav>
+
+  <!-- BACKDROP HERO -->
+  <div class="backdrop-hero" id="backdrop-hero">
+    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent w-2/3"></div>
+  </div>
+
+  <!-- CONTENT -->
+  <main class="max-w-7xl mx-auto px-6 -mt-32 relative z-10 pb-20">
+    <div class="grid lg:grid-cols-[280px_1fr] gap-12">
+      <!-- Poster -->
+      <div class="shrink-0">
+        <div class="rounded-2xl overflow-hidden shadow-2xl shadow-crimson/20 aspect-[2/3]" id="poster-wrap">
+          <img id="poster" src="" alt="" class="w-full h-full object-cover" />
+        </div>
+        <button id="watchlist-btn" onclick="toggleWatchlist()" class="mt-4 w-full py-3 border border-white/20 rounded-full text-sm hover:border-gold hover:text-gold transition text-center">+ Add to Watchlist</button>
+      </div>
+
+      <!-- Info -->
+      <div class="pt-6">
+        <div class="flex flex-wrap items-center gap-3 mb-3">
+          <span id="genre-tag" class="text-xs text-crimson border border-crimson/40 px-3 py-1 rounded-full"></span>
+          <span id="year" class="text-xs text-white/30"></span>
+          <span id="duration" class="text-xs text-white/30"></span>
+        </div>
+        <h1 id="title" class="font-display text-5xl md:text-6xl font-black leading-none mb-4"></h1>
+        <div class="flex items-center gap-3 mb-6">
+          <span id="rating-badge" class="text-gold font-display text-2xl font-bold"></span>
+          <div class="flex-1 max-w-32"><div class="rating-bar" id="rating-fill"></div></div>
+        </div>
+        <p id="description" class="text-white/50 text-base leading-relaxed max-w-2xl mb-8"></p>
+        <div class="grid grid-cols-2 gap-4 mb-8 text-sm">
+          <div><p class="text-white/25 text-xs uppercase tracking-widest mb-1">Director</p><p id="director" class="font-medium"></p></div>
+          <div><p class="text-white/25 text-xs uppercase tracking-widest mb-1">Cast</p><p id="cast" class="text-white/70 leading-snug"></p></div>
+        </div>
+        <!-- CTA -->
+        <div class="flex flex-wrap gap-4">
+          <button onclick="openPlayer()" class="flex items-center gap-3 px-8 py-4 bg-crimson rounded-full font-medium hover:bg-red-700 transition text-sm">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            Watch Now
+          </button>
+          <button onclick="openTrailer()" class="flex items-center gap-3 px-8 py-4 border border-white/20 rounded-full font-medium hover:border-gold hover:text-gold transition text-sm">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16"/></svg>
+            Watch Trailer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Related -->
+    <div class="mt-20">
+      <h2 class="font-display text-3xl font-bold mb-8">You May Also Like</h2>
+      <div id="related-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+    </div>
+  </main>
+
+  <!-- PLAYER MODAL -->
+  <div id="player-modal" class="modal-overlay fixed inset-0 z-[100] bg-black/95 items-center justify-center">
+    <div class="relative w-full max-w-4xl px-4">
+      <button onclick="closeModal('player-modal')" class="absolute -top-12 right-4 text-white/50 hover:text-white text-sm">✕ Close</button>
+      <div class="aspect-video rounded-2xl overflow-hidden bg-black flex items-center justify-center border border-white/10">
+        <div class="text-center"><p class="text-6xl mb-4">🎬</p><p class="font-display text-2xl font-bold mb-2" id="player-title"></p><p class="text-white/40 text-sm">Stream is starting…</p><div class="mt-6 h-1 w-48 mx-auto bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-crimson rounded-full w-0" id="progress-bar" style="transition:width 3s linear"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRAILER MODAL -->
+  <div id="trailer-modal" class="modal-overlay fixed inset-0 z-[100] bg-black/95 items-center justify-center">
+    <div class="relative w-full max-w-4xl px-4">
+      <button onclick="closeModal('trailer-modal')" class="absolute -top-12 right-4 text-white/50 hover:text-white text-sm">✕ Close</button>
+      <div class="aspect-video rounded-2xl overflow-hidden"><iframe id="trailer-frame" src="" class="w-full h-full" allowfullscreen></iframe></div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    const id = parseInt(new URLSearchParams(location.search).get('id') || 1);
+    const movie = MOVIES.find(m => m.id === id) || MOVIES[0];
+
+    // Backdrop
+    const hero = document.getElementById('backdrop-hero');
+    hero.style.backgroundImage = `url('${movie.backdrop}')`;
+    hero.style.backgroundSize = 'cover';
+    hero.style.backgroundPosition = 'center top';
+
+    document.getElementById('poster').src = movie.poster;
+    document.getElementById('poster').alt = movie.title;
+    document.getElementById('title').textContent = movie.title;
+    document.getElementById('year').textContent = movie.year;
+    document.getElementById('duration').textContent = movie.duration;
+    document.getElementById('genre-tag').textContent = movie.genre[0];
+    document.getElementById('description').textContent = movie.description;
+    document.getElementById('director').textContent = movie.director;
+    document.getElementById('cast').textContent = movie.cast.join(', ');
+    document.getElementById('rating-badge').textContent = '⭐ ' + movie.rating;
+    document.getElementById('rating-fill').style.width = (movie.rating / 10 * 100) + '%';
+    document.title = `${movie.title} — CineVault`;
+
+    // Watchlist btn
+    function updateWatchlistBtn() {
+      const btn = document.getElementById('watchlist-btn');
+      if (Watchlist.has(movie.id)) { btn.textContent = '✓ In Watchlist'; btn.classList.add('border-gold','text-gold'); }
+      else { btn.textContent = '+ Add to Watchlist'; btn.classList.remove('border-gold','text-gold'); }
+    }
+    function toggleWatchlist() {
+      if (!Auth.current()) { return window.location.href='auth.html'; }
+      Watchlist.has(movie.id) ? Watchlist.remove(movie.id) : Watchlist.add(movie);
+      updateWatchlistBtn();
+    }
+    updateWatchlistBtn();
+
+    // Related
+    const related = MOVIES.filter(m => m.id !== movie.id && m.genre.some(g => movie.genre.includes(g))).slice(0,4);
+    document.getElementById('related-grid').innerHTML = related.map(m => `
+      <a href="movie-details.html?id=${m.id}" class="group relative rounded-xl overflow-hidden block aspect-[2/3]">
+        <img src="${m.poster}" alt="${m.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://via.placeholder.com/300x450/111/444?text=${encodeURIComponent(m.title)}'"/>
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+        <div class="absolute bottom-0 p-3"><p class="font-display font-bold text-sm">${m.title}</p><p class="text-white/40 text-xs">${m.year}</p></div>
+      </a>`).join('');
+
+    function openPlayer() {
+      if (!Auth.current()) return window.location.href = 'auth.html';
+      document.getElementById('player-title').textContent = movie.title;
+      document.getElementById('player-modal').classList.add('open');
+      setTimeout(() => { document.getElementById('progress-bar').style.width='100%'; }, 100);
+    }
+    function openTrailer() {
+      document.getElementById('trailer-frame').src = movie.trailer + '?autoplay=1';
+      document.getElementById('trailer-modal').classList.add('open');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+      if (id === 'trailer-modal') document.getElementById('trailer-frame').src = '';
+    }
+    document.addEventListener('keydown', e => { if(e.key==='Escape') { closeModal('player-modal'); closeModal('trailer-modal'); } });
+  </script>
+</body>
+</html>
