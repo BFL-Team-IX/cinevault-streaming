@@ -18,7 +18,7 @@
 </head>
 <body class="bg-black text-white font-body grain min-h-screen">
 
-  <!-- NAV -->
+  <!-- NAVIGATE TO THE WATCHLIST -->
   <nav class="fixed top-0 w-full z-50 bg-black/90 backdrop-blur-md border-b border-white/5">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <a href="index.html" class="font-display text-2xl font-black"><span class="text-crimson">CINE</span>VAULT</a>
@@ -47,7 +47,7 @@
       </div>
     </div>
 
-    <!-- Watchlist -->
+    <!-- Watchlist to save and clear films -->
     <div class="flex items-end justify-between mb-8">
       <div><p class="text-crimson text-xs tracking-widest uppercase mb-2">Saved Films</p><h2 class="font-display text-4xl font-bold">My Watchlist</h2></div>
       <div id="watchlist-actions" class="hidden">
@@ -55,7 +55,7 @@
       </div>
     </div>
 
-    <!-- Empty State -->
+    <!-- Empty State where no films are saved-->
     <div id="empty-state" class="hidden text-center py-28">
       <p class="text-7xl mb-6">🎞️</p>
       <h3 class="font-display text-2xl font-bold mb-3">Your watchlist is empty</h3>
@@ -66,7 +66,7 @@
     <!-- Grid -->
     <div id="watchlist-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
 
-    <!-- Recommendations -->
+    <!-- Recommendations based on your taste -->
     <div id="rec-section" class="mt-20 hidden">
       <div class="mb-8"><p class="text-gold text-xs tracking-widest uppercase mb-2">Based on your taste</p><h2 class="font-display text-3xl font-bold">You Might Like</h2></div>
       <div id="rec-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
