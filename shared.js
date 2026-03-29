@@ -4,7 +4,7 @@ const Auth = {
   login(user) { localStorage.setItem('cv_user', JSON.stringify(user)); },
   logout() { localStorage.removeItem('cv_user'); },
   current() { try { return JSON.parse(localStorage.getItem('cv_user')); } catch { return null; } },
-  required(redirect = 'auth.html') { if (!this.current()) { window.location.href = redirect; return false; } return true; }
+  required(redirect = 'auth-freedom.html') { if (!this.current()) { window.location.href = redirect; return false; } return true; }
 };
 
 // Watchlist helpers
